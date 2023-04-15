@@ -1,0 +1,73 @@
+import base64
+from io import BytesIO
+
+from potassium import Potassium, Request, Response
+
+from transformers import pipeline
+import torch
+from diffusers import DiffusionPipeline
+
+app = Potassium("my_app")
+
+# @app.init runs at startup, and loads models into the app's context
+@app.init
+def init():
+    model = DiffusionPipeline.from_pretrained(
+        "nitrosocke/Future-Diffusion",
+        torch_dtype=torch.float32
+    ).to('cuda')
+   
+    context = {
+        "model": model
+    }
+
+    return context
+
+def _generate_latent(model, height, width, seed=None, device="cuda"):
+    generator = torch.Generator(device=device)
+
+    # Get a new random seed, store it and use it as the generator state
+    if not seed:
+        seed = generator.seed()
+    generator = generator.manual_seed(seed)
+    
+    image_latent = torch.randn(
+        (1, model.unet.in_channels, height // 8, width // 8),
+        generator = generator,
+        device = device
+    )
+    return image_latent.type(torch.float32)
+
+# @app.handler runs for every call
+@app.handler()
+def handler(context: dict, request: Request) -> Response:
+    model = context.get("model")
+    
+
+    latent = _generate_latent(model, 64*6, 64*6)
+    images = model(
+        prompt = "future style "+ request.json.get("prompt", None) +" cinematic lights, trending on artstation, avengers endgame, emotional",
+        height=64*7,
+        width=64*7,
+        num_inference_steps = 20,
+        guidance_scale = 7.5,
+        negative_prompt="duplicate heads bad anatomy extra legs text",
+        num_images_per_prompt = 1,
+        return_dict=False,
+        latents = latent
+    )
+    image = images[0][0]
+    
+    # Resize output and conver to base64
+    # image = image.resize((250, 250))
+    buffered = BytesIO()
+    image.save(buffered, format="JPEG")
+    image_base64 = str(base64.b64encode(buffered.getvalue()))[2:-1]
+
+    return Response(
+        json = {"image_base64": image_base64}, 
+        status=200
+    )
+
+if __name__ == "__main__":
+    app.serve()

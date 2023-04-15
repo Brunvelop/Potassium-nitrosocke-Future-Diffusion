@@ -1,0 +1,5 @@
+potassium
+torch
+transformers
+diffusers==0.12.1
+websockets==10.0
