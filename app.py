@@ -3,7 +3,6 @@ from io import BytesIO
 
 from potassium import Potassium, Request, Response
 
-from transformers import pipeline
 import torch
 from diffusers import DiffusionPipeline
 
@@ -12,11 +11,10 @@ app = Potassium("my_app")
 # @app.init runs at startup, and loads models into the app's context
 @app.init
 def init():
-    device = 0 if torch.cuda.is_available() else -1
     model = DiffusionPipeline.from_pretrained(
         "nitrosocke/Future-Diffusion",
         torch_dtype=torch.float32
-    ).to(device)
+    ).to('cuda')
    
     context = {
         "model": model
@@ -48,8 +46,8 @@ def handler(context: dict, request: Request) -> Response:
     latent = _generate_latent(model, 64*6, 64*6)
     images = model(
         prompt = "future style "+ request.json.get("prompt", None) +" cinematic lights, trending on artstation, avengers endgame, emotional",
-        height=64*7,
-        width=64*7,
+        height=64*6,
+        width=64*6,
         num_inference_steps = 20,
         guidance_scale = 7.5,
         negative_prompt="duplicate heads bad anatomy extra legs text",
