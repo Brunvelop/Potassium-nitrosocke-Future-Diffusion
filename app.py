@@ -15,7 +15,7 @@ def init():
     model = DiffusionPipeline.from_pretrained(
         "nitrosocke/Future-Diffusion",
         torch_dtype=torch.float16
-    ).to('cuda')
+    )
    
     context = {
         "model": model
