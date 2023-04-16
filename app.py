@@ -12,10 +12,11 @@ app = Potassium("my_app")
 # @app.init runs at startup, and loads models into the app's context
 @app.init
 def init():
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = DiffusionPipeline.from_pretrained(
         "nitrosocke/Future-Diffusion",
         torch_dtype=torch.float16
-    )
+    ).to(device)
    
     context = {
         "model": model
