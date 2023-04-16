@@ -4,6 +4,7 @@ from io import BytesIO
 from potassium import Potassium, Request, Response
 
 import torch
+from torch import autocast
 from diffusers import DiffusionPipeline
 
 app = Potassium("my_app")
@@ -13,7 +14,7 @@ app = Potassium("my_app")
 def init():
     model = DiffusionPipeline.from_pretrained(
         "nitrosocke/Future-Diffusion",
-        torch_dtype=torch.float32
+        torch_dtype=torch.float16
     ).to('cuda')
    
     context = {
@@ -35,7 +36,7 @@ def _generate_latent(model, height, width, seed=None, device="cuda"):
         generator = generator,
         device = device
     )
-    return image_latent.type(torch.float32)
+    return image_latent.type(torch.float16)
 
 # @app.handler runs for every call
 @app.handler()
@@ -44,17 +45,18 @@ def handler(context: dict, request: Request) -> Response:
     
 
     latent = _generate_latent(model, 64*6, 64*6)
-    images = model(
-        prompt = "future style "+ request.json.get("prompt", None) +" cinematic lights, trending on artstation, avengers endgame, emotional",
-        height=64*6,
-        width=64*6,
-        num_inference_steps = 20,
-        guidance_scale = 7.5,
-        negative_prompt="duplicate heads bad anatomy extra legs text",
-        num_images_per_prompt = 1,
-        return_dict=False,
-        latents = latent
-    )
+    with autocast("cuda"):
+        images = model(
+            prompt = "future style "+ request.json.get("prompt", None) +" cinematic lights, trending on artstation, avengers endgame, emotional",
+            height=64*6,
+            width=64*6,
+            num_inference_steps = 20,
+            guidance_scale = 7.5,
+            negative_prompt="duplicate heads bad anatomy extra legs text",
+            num_images_per_prompt = 1,
+            return_dict=False,
+            latents = latent
+        )
     image = images[0][0]
     
     # Resize output and conver to base64

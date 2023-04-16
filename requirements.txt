@@ -1,6 +1,6 @@
 potassium
 torch
 transformers
-diffusers==0.12.1
+diffusers[torch]
 websockets==10.0
 accelerate
