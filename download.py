@@ -3,8 +3,6 @@ from diffusers import DiffusionPipeline
 
 def download_model():
     # do a dry run of loading the huggingface model, which will download weights
-    device = 0 if torch.cuda.is_available() else -1
-    print("device", device)
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model = DiffusionPipeline.from_pretrained(
         "nitrosocke/Future-Diffusion",

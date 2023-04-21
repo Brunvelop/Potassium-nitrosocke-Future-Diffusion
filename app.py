@@ -40,11 +40,10 @@ def _generate_latent(model, height, width, seed=None, device="cuda"):
     return image_latent.type(torch.float16)
 
 # @app.handler runs for every call
-@app.handler()
+@app.handler("/")
 def handler(context: dict, request: Request) -> Response:
     model = context.get("model")
     
-
     latent = _generate_latent(model, 64*6, 64*6)
     with autocast("cuda"):
         images = model(
@@ -60,8 +59,6 @@ def handler(context: dict, request: Request) -> Response:
         )
     image = images[0][0]
     
-    # Resize output and conver to base64
-    # image = image.resize((250, 250))
     buffered = BytesIO()
     image.save(buffered, format="JPEG")
     image_base64 = str(base64.b64encode(buffered.getvalue()))[2:-1]
