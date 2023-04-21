@@ -4,3 +4,4 @@ transformers
 diffusers[torch]
 websockets==10.0
 accelerate
+triton
